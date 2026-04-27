@@ -1,39 +1,45 @@
 # Strava Year in Review
 
-A personal dashboard to visualize your Strava activity statistics. Built with Next.js, React, TypeScript, and Tailwind CSS.
+A personal dashboard to visualize your Strava activity statistics. Connect with your Strava account and explore your yearly activity data with charts, heatmaps, and detailed stats.
+
+![Strava Year in Review](https://via.placeholder.com/800x400?text=Strava+Year+in+Review)
 
 ## Features
 
-- **OAuth Authentication** - Connect securely via Strava's OAuth
-- **Year Selection** - Filter and view stats by year
+- **OAuth Authentication** - Secure Strava login (no password stored)
+- **Year Selection** - Filter data by any year
 - **Activity Statistics**:
-  - Total distance, time, elevation, activities
-  - Average distance, longest activity, fastest pace
-  - Calories burned, heart rate data (if available)
-  - Current streak and longest streak
-  - Weekend vs weekday breakdown
+  - Total distance, time, elevation
+  - Average distance per activity
+  - Longest activity (with date)
+  - Fastest pace (Run only, with date)
+  - Calories burned
+  - Heart rate stats (if available)
+  - Current and longest streak
+  
 - **Visualizations**:
   - Monthly distance bar chart
-  - Activities per month bar chart
-  - Activity type distribution pie chart
-  - Weekday distribution bar chart (Mon-Sun)
-  - Year-over-year comparison line chart
+  - Activities per month chart
+  - Weekday vs weekend distribution
+  - Year-over-year comparison
+  - Activity type pie chart
   - GitHub-style activity heatmap
-- **Activity List** - Filterable and sortable list of all activities
+
 - **Dark/Light Mode** - Toggle between themes
+- **Activity List** - Filterable and sortable activity table
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 18+
-- A Strava API application (free at https://www.strava.com/settings/api)
+- A Strava API application (free to create at https://www.strava.com/settings/api)
 
 ### Installation
 
 1. Clone the repository:
 ```bash
-git clone <your-repo-url>
+git clone <repository-url>
 cd strava_yearly_recap
 ```
 
@@ -42,48 +48,72 @@ cd strava_yearly_recap
 npm install
 ```
 
-3. Create your Strava API application:
-   - Go to https://www.strava.com/settings/api
-   - Create an application
-   - Set Authorization Callback Domain to your domain (e.g., `localhost:3000` for development)
-
-4. Configure environment variables:
-```bash
-# Edit .env.local with your credentials:
+3. Create a `.env.local` file in the root directory:
+```env
 STRAVA_CLIENT_ID=your_client_id
 STRAVA_CLIENT_SECRET=your_client_secret
 STRAVA_CALLBACK_URL=http://localhost:3000/api/auth/callback
 ```
 
-5. Run the development server:
+4. Run the development server:
 ```bash
 npm run dev
 ```
 
-6. Open http://localhost:3000 and click "Connect with Strava"
+5. Open http://localhost:3000 in your browser
 
-### Building for Production
+### Setting up Strava API
 
-```bash
-npm run build
-npm start
+1. Go to https://www.strava.com/settings/api
+2. Create an application
+3. Set Authorization Callback Domain to `localhost:3000`
+4. Copy the Client ID and Client Secret to your `.env.local`
+
+## Project Structure
+
 ```
+src/
+├── app/
+│   ├── api/
+│   │   ├── activities/       # Activity data API
+│   │   └── auth/             # OAuth routes
+│   ├── connect/              # Login page
+│   ├── Dashboard.tsx         # Main dashboard
+│   ├── layout.tsx            # Root layout
+│   └── page.tsx              # Home page
+├── components/
+│   ├── ActivityList.tsx      # Activity table
+│   ├── Charts.tsx            # Recharts visualizations
+│   ├── Heatmap.tsx           # GitHub-style heatmap
+│   ├── StatCard.tsx          # Stat display card
+│   ├── ThemeProvider.tsx     # Dark mode context
+│   └── ThemeToggle.tsx       # Theme switch button
+└── lib/
+    ├── oauth.ts              # OAuth URL helper
+    ├── server-auth.ts        # Token storage
+    ├── strava.ts             # Stats calculations
+    └── types.ts              # TypeScript types
+```
+
+## Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
 
 ## Tech Stack
 
-- **Next.js 16** - App Router
-- **React 19** with TypeScript
-- **Tailwind CSS 4** - Styling
-- **Recharts** - Charts and visualizations
-- **Strava API v3** - Activity data
+- [Next.js 16](https://nextjs.org/) - React framework with App Router
+- [TypeScript](https://www.typescriptlang.org/) - Type safety
+- [Tailwind CSS](https://tailwindcss.com/) - Styling
+- [Recharts](https://recharts.org/) - Charts and graphs
+- [Strava API v3](https://developers.strava.com/) - Activity data
 
 ## License
 
-This project is for personal use only. Not affiliated with Strava.
+MIT License - Personal use only. This project is not affiliated with Strava.
 
-## Notes
+## Disclaimer
 
-- Activity data is cached in memory for 30 minutes to reduce API calls
-- Tokens are stored in HTTP-only cookies for security
-- Some statistics (calories, heart rate) require the activity to have that data recorded
-- Week starts on Monday for all date-related calculations
+This project is for personal use only. It is not affiliated with, endorsed by, or connected to Strava. All activity data belongs to the user.
