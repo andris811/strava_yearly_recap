@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { StravaActivity } from '@/lib/types';
+import { ActivityMap } from './ActivityMap';
 
 function formatPace(paceMinPerKm: number | null): string {
   if (paceMinPerKm === null) return '-';
@@ -186,17 +187,11 @@ export function ActivityDetail({ activity, onClose }: ActivityDetailProps) {
             {displayActivity.map && displayActivity.map.summary_polyline && (
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-3 text-zinc-900 dark:text-zinc-100">Route Map</h3>
-                <div className="rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700">
-                  <iframe
-                    src={`https://www.strava.com/activities/${displayActivity.id}/embed`}
-                    width="100%"
-                    height="400"
-                    frameBorder="0"
-                    scrolling="no"
-                    title="Activity Map"
-                    className="w-full"
-                  ></iframe>
-                </div>
+                <ActivityMap
+                  polyline={displayActivity.map.summary_polyline}
+                  startLatLng={displayActivity.start_latlng}
+                  endLatLng={displayActivity.end_latlng}
+                />
                 {displayActivity.map.id && (
                   <p className="text-xs text-zinc-500 mt-2">
                     Map ID: {displayActivity.map.id}
