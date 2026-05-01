@@ -23,6 +23,11 @@ export interface StravaActivity {
   kilojoules: number | null;
   split_standard: SplitData[] | null;
   splits_metric: SplitData[] | null;
+  map: {
+    id: string;
+    polyline: string | null;
+    summary_polyline: string | null;
+  } | null;
 }
 
 export interface SplitData {
