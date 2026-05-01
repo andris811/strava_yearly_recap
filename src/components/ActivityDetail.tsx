@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { StravaActivity } from '@/lib/types';
 
 function formatPace(paceMinPerKm: number | null): string {
@@ -12,8 +13,10 @@ function formatPace(paceMinPerKm: number | null): string {
 function formatTime(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  return `${minutes}m`;
+  const secs = Math.floor(seconds % 60);
+  if (hours > 0) return `${hours}h ${minutes.toString().padStart(2, '0')}m ${secs.toString().padStart(2, '0')}s`;
+  if (minutes > 0) return `${minutes}m ${secs.toString().padStart(2, '0')}s`;
+  return `${secs}s`;
 }
 
 function formatDate(dateStr: string): string {
@@ -44,14 +47,65 @@ interface ActivityDetailProps {
   onClose: () => void;
 }
 
+interface DetailedActivity extends StravaActivity {
+  calories: number | null;
+  laps?: any[];
+  segment_efforts?: any[];
+}
+
+interface ZoneData {
+  type: string;
+  distribution_buckets?: Array<{ min: number; max: number; time: number }>;
+}
+
 export function ActivityDetail({ activity, onClose }: ActivityDetailProps) {
+  const [detailedActivity, setDetailedActivity] = useState<DetailedActivity | null>(null);
+  const [zones, setZones] = useState<ZoneData[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!activity) return;
+    
+    setLoading(true);
+    
+    Promise.all([
+      fetch(`/api/activities/${activity.id}`).then(r => r.json()),
+      fetch(`/api/activities/${activity.id}/zones`).then(r => r.json()),
+    ]).then(([activityData, zonesData]) => {
+      if (activityData.activity) setDetailedActivity(activityData.activity);
+      if (zonesData.zones) setZones(zonesData.zones);
+      setLoading(false);
+    }).catch(err => {
+      console.error('Error fetching activity details:', err);
+      setLoading(false);
+    });
+  }, [activity?.id]);
+
   if (!activity) return null;
 
-  const paceMinPerKm = activity.moving_time > 0 && activity.distance > 0
-    ? (activity.moving_time / 60) / (activity.distance / 1000)
+  const displayActivity = detailedActivity || activity;
+  
+  const paceMinPerKm = displayActivity.moving_time > 0 && displayActivity.distance > 0
+    ? (displayActivity.moving_time / 60) / (displayActivity.distance / 1000)
     : null;
 
-  const splits = activity.splits_metric || [];
+  const splits = displayActivity.splits_metric || [];
+  
+  // Find fastest split
+  const fastestSplit = splits.length > 0 
+    ? splits.reduce((fastest, split) => {
+        const pace = split.moving_time > 0 && split.distance > 0
+          ? (split.moving_time / 60) / (split.distance / 1000)
+          : Infinity;
+        const fastestPace = fastest.moving_time > 0 && fastest.distance > 0
+          ? (fastest.moving_time / 60) / (fastest.distance / 1000)
+          : Infinity;
+        return pace < fastestPace ? split : fastest;
+      }, splits[0])
+    : null;
+
+  const hrZones = zones.find(z => z.type === 'heartrate');
+  const powerZones = zones.find(z => z.type === 'power');
 
   return (
     <div
@@ -77,76 +131,184 @@ export function ActivityDetail({ activity, onClose }: ActivityDetailProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
-          <div className="bg-zinc-50 dark:bg-zinc-800 p-3 rounded-lg">
-            <p className="text-xs text-zinc-500 uppercase">Distance</p>
-            <p className="text-lg font-semibold">{(activity.distance / 1000).toFixed(2)} km</p>
+        {loading && (
+          <div className="text-center py-8">
+            <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-2 text-sm text-zinc-500">Loading details...</p>
           </div>
-          <div className="bg-zinc-50 dark:bg-zinc-800 p-3 rounded-lg">
-            <p className="text-xs text-zinc-500 uppercase">Moving Time</p>
-            <p className="text-lg font-semibold">{formatTime(activity.moving_time)}</p>
-          </div>
-          <div className="bg-zinc-50 dark:bg-zinc-800 p-3 rounded-lg">
-            <p className="text-xs text-zinc-500 uppercase">Pace</p>
-            <p className="text-lg font-semibold">{formatPace(paceMinPerKm)}</p>
-          </div>
-          <div className="bg-zinc-50 dark:bg-zinc-800 p-3 rounded-lg">
-            <p className="text-xs text-zinc-500 uppercase">Elevation</p>
-            <p className="text-lg font-semibold">{activity.total_elevation_gain.toFixed(0)} m</p>
-          </div>
-          {activity.average_heartrate && (
-            <div className="bg-zinc-50 dark:bg-zinc-800 p-3 rounded-lg">
-              <p className="text-xs text-zinc-500 uppercase">Avg HR</p>
-              <p className="text-lg font-semibold">{Math.round(activity.average_heartrate)} bpm</p>
-            </div>
-          )}
-          {activity.average_cadence && (
-            <div className="bg-zinc-50 dark:bg-zinc-800 p-3 rounded-lg">
-              <p className="text-xs text-zinc-500 uppercase">Cadence</p>
-              <p className="text-lg font-semibold">{Math.round(activity.average_cadence)} rpm</p>
-            </div>
-          )}
-        </div>
+        )}
 
-        {splits.length > 0 && (
-          <div>
-            <h3 className="text-lg font-semibold mb-3 text-zinc-900 dark:text-zinc-100">Splits (per km)</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-zinc-200 dark:border-zinc-700">
-                    <th className="text-left py-2 px-2">Split</th>
-                    <th className="text-right py-2 px-2">Distance</th>
-                    <th className="text-right py-2 px-2">Time</th>
-                    <th className="text-right py-2 px-2">Pace</th>
-                    {splits.some(s => s.avg_heartrate) && (
-                      <th className="text-right py-2 px-2">HR</th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {splits.map((split) => {
-                    const splitPace = split.moving_time > 0 && split.distance > 0
-                      ? (split.moving_time / 60) / (split.distance / 1000)
-                      : null;
+        {!loading && (
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
+              <div className="bg-zinc-50 dark:bg-zinc-800 p-3 rounded-lg">
+                <p className="text-xs text-zinc-500 uppercase">Distance</p>
+                <p className="text-lg font-semibold">{(displayActivity.distance / 1000).toFixed(2)} km</p>
+              </div>
+              <div className="bg-zinc-50 dark:bg-zinc-800 p-3 rounded-lg">
+                <p className="text-xs text-zinc-500 uppercase">Moving Time</p>
+                <p className="text-lg font-semibold">{formatTime(displayActivity.moving_time)}</p>
+              </div>
+              <div className="bg-zinc-50 dark:bg-zinc-800 p-3 rounded-lg">
+                <p className="text-xs text-zinc-500 uppercase">Avg Pace</p>
+                <p className="text-lg font-semibold">{formatPace(paceMinPerKm)}</p>
+              </div>
+              <div className="bg-zinc-50 dark:bg-zinc-800 p-3 rounded-lg">
+                <p className="text-xs text-zinc-500 uppercase">Elevation</p>
+                <p className="text-lg font-semibold">{displayActivity.total_elevation_gain.toFixed(0)} m</p>
+              </div>
+              {displayActivity.calories && (
+                <div className="bg-zinc-50 dark:bg-zinc-800 p-3 rounded-lg">
+                  <p className="text-xs text-zinc-500 uppercase">Calories</p>
+                  <p className="text-lg font-semibold">{Math.round(displayActivity.calories)} kcal</p>
+                </div>
+              )}
+              {displayActivity.average_heartrate && (
+                <div className="bg-zinc-50 dark:bg-zinc-800 p-3 rounded-lg">
+                  <p className="text-xs text-zinc-500 uppercase">Avg HR</p>
+                  <p className="text-lg font-semibold">{Math.round(displayActivity.average_heartrate)} bpm</p>
+                </div>
+              )}
+              {displayActivity.average_cadence && (
+                <div className="bg-zinc-50 dark:bg-zinc-800 p-3 rounded-lg">
+                  <p className="text-xs text-zinc-500 uppercase">Cadence</p>
+                  <p className="text-lg font-semibold">{Math.round(displayActivity.average_cadence)} rpm</p>
+                </div>
+              )}
+              {displayActivity.average_watts && (
+                <div className="bg-zinc-50 dark:bg-zinc-800 p-3 rounded-lg">
+                  <p className="text-xs text-zinc-500 uppercase">Avg Power</p>
+                  <p className="text-lg font-semibold">{Math.round(displayActivity.average_watts)} W</p>
+                </div>
+              )}
+            </div>
+
+            {fastestSplit && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-3 text-zinc-900 dark:text-zinc-100">Fastest Split</h3>
+                <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-zinc-500">Split #{fastestSplit.split}</p>
+                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        {formatPace(fastestSplit.moving_time > 0 && fastestSplit.distance > 0
+                          ? (fastestSplit.moving_time / 60) / (fastestSplit.distance / 1000)
+                          : null)}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-zinc-500">Time</p>
+                      <p className="text-lg font-semibold">{formatTime(fastestSplit.moving_time)}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {hrZones && hrZones.distribution_buckets && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-3 text-zinc-900 dark:text-zinc-100">Heart Rate Zones</h3>
+                <div className="space-y-2">
+                  {hrZones.distribution_buckets.map((bucket, idx) => {
+                    const totalTime = hrZones.distribution_buckets!.reduce((sum, b) => sum + b.time, 0);
+                    const percentage = totalTime > 0 ? (bucket.time / totalTime) * 100 : 0;
                     return (
-                      <tr key={split.split} className="border-b border-zinc-100 dark:border-zinc-800">
-                        <td className="py-2 px-2">{split.split}</td>
-                        <td className="py-2 px-2 text-right">{(split.distance / 1000).toFixed(2)} km</td>
-                        <td className="py-2 px-2 text-right">{formatTime(split.moving_time)}</td>
-                        <td className="py-2 px-2 text-right">{formatPace(splitPace)}</td>
-                        {splits.some(s => s.avg_heartrate) && (
-                          <td className="py-2 px-2 text-right">
-                            {split.avg_heartrate ? Math.round(split.avg_heartrate) : '-'}
-                          </td>
-                        )}
-                      </tr>
+                      <div key={idx} className="flex items-center gap-3">
+                        <div className="w-20 text-xs text-zinc-500">
+                          {bucket.min}-{bucket.max}
+                        </div>
+                        <div className="flex-1 bg-zinc-100 dark:bg-zinc-800 rounded-full h-6 overflow-hidden">
+                          <div 
+                            className="bg-red-500 h-full rounded-full" 
+                            style={{ width: `${percentage}%` }}
+                          ></div>
+                        </div>
+                        <div className="w-16 text-xs text-right text-zinc-500">
+                          {Math.round(bucket.time / 60)}m
+                        </div>
+                      </div>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
-          </div>
+                </div>
+              </div>
+            )}
+
+            {powerZones && powerZones.distribution_buckets && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-3 text-zinc-900 dark:text-zinc-100">Power Zones</h3>
+                <div className="space-y-2">
+                  {powerZones.distribution_buckets.map((bucket, idx) => {
+                    const totalTime = powerZones.distribution_buckets!.reduce((sum, b) => sum + b.time, 0);
+                    const percentage = totalTime > 0 ? (bucket.time / totalTime) * 100 : 0;
+                    return (
+                      <div key={idx} className="flex items-center gap-3">
+                        <div className="w-20 text-xs text-zinc-500">
+                          {bucket.min}-{bucket.max}
+                        </div>
+                        <div className="flex-1 bg-zinc-100 dark:bg-zinc-800 rounded-full h-6 overflow-hidden">
+                          <div 
+                            className="bg-blue-500 h-full rounded-full" 
+                            style={{ width: `${percentage}%` }}
+                          ></div>
+                        </div>
+                        <div className="w-16 text-xs text-right text-zinc-500">
+                          {Math.round(bucket.time / 60)}m
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {splits.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-zinc-900 dark:text-zinc-100">Splits (per km)</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-zinc-200 dark:border-zinc-700">
+                        <th className="text-left py-2 px-2">Split</th>
+                        <th className="text-right py-2 px-2">Distance</th>
+                        <th className="text-right py-2 px-2">Time</th>
+                        <th className="text-right py-2 px-2">Pace</th>
+                        {splits.some(s => s.avg_heartrate) && (
+                          <th className="text-right py-2 px-2">HR</th>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {splits.map((split) => {
+                        const splitPace = split.moving_time > 0 && split.distance > 0
+                          ? (split.moving_time / 60) / (split.distance / 1000)
+                          : null;
+                        const isFastest = fastestSplit && split.split === fastestSplit.split;
+                        return (
+                          <tr 
+                            key={split.split} 
+                            className={`border-b border-zinc-100 dark:border-zinc-800 ${isFastest ? 'bg-green-50 dark:bg-green-900/20' : ''}`}
+                          >
+                            <td className="py-2 px-2">
+                              {split.split}
+                              {isFastest && <span className="ml-1 text-green-600">★</span>}
+                            </td>
+                            <td className="py-2 px-2 text-right">{(split.distance / 1000).toFixed(2)} km</td>
+                            <td className="py-2 px-2 text-right">{formatTime(split.moving_time)}</td>
+                            <td className="py-2 px-2 text-right font-semibold">{formatPace(splitPace)}</td>
+                            {splits.some(s => s.avg_heartrate) && (
+                              <td className="py-2 px-2 text-right">
+                                {split.avg_heartrate ? Math.round(split.avg_heartrate) : '-'}
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
