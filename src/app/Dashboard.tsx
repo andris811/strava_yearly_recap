@@ -1,4 +1,4 @@
-'use client';
+ 'use client';
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
@@ -6,6 +6,8 @@ import { StatCard } from '@/components/StatCard';
 import { Charts } from '@/components/Charts';
 import { Heatmap } from '@/components/Heatmap';
 import { ActivityList } from '@/components/ActivityList';
+import { HistorySection } from '@/components/HistorySection';
+import { ActivityDetail } from '@/components/ActivityDetail';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { filterActivitiesByYear, calculateYearStats } from '@/lib/strava';
 import { StravaActivity } from '@/lib/types';
@@ -26,17 +28,13 @@ function formatPace(pace: number | null): string {
   return `${minutes}:${seconds.toString().padStart(2, '0')} /km`;
 }
 
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-
 export default function Dashboard() {
   const [activities, setActivities] = useState<StravaActivity[]>([]);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<StravaActivity | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -242,8 +240,17 @@ export default function Dashboard() {
 
         <Heatmap dailyActivity={stats.dailyActivity} year={selectedYear} />
 
-        <ActivityList activities={filteredActivities} />
+        <HistorySection activities={activities} onSelectActivity={setSelectedActivity} />
+        
+        <ActivityList activities={filteredActivities} onSelectActivity={setSelectedActivity} />
       </main>
+
+      {selectedActivity && (
+        <ActivityDetail
+          activity={selectedActivity}
+          onClose={() => setSelectedActivity(null)}
+        />
+      )}
     </div>
   );
 }
