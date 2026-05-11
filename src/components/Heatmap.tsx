@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 interface HeatmapProps {
   dailyActivity: Record<string, number>;
@@ -100,8 +100,10 @@ export function Heatmap({ dailyActivity, dailyCount, year }: HeatmapProps) {
   const cellGap = 3;
   const dayLabelWidth = 28;
 
+  const [tooltip, setTooltip] = useState<{ x: number; y: number; date: string; count: number; value: number } | null>(null);
+
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-xl p-4 md:p-6 shadow-sm border border-zinc-200 dark:border-zinc-800">
+    <div className="bg-white dark:bg-zinc-900 rounded-xl p-4 md:p-6 shadow-sm border border-zinc-200 dark:border-zinc-800 relative">
       <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 mb-4">
         Activity Heatmap - {year}
       </h3>
@@ -159,7 +161,33 @@ export function Heatmap({ dailyActivity, dailyCount, year }: HeatmapProps) {
                         width: cellSize,
                         height: cellSize,
                       }}
-                      title={day.inYear ? `${new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} — ${day.count} activity${day.count === 1 ? '' : 'ies'}` : ''}
+                      onMouseEnter={(e) => {
+                        if (!day.inYear) return;
+                        const rect = (e.target as HTMLElement).getBoundingClientRect();
+                        const parent = (e.target as HTMLElement).closest('.relative')!;
+                        const parentRect = parent.getBoundingClientRect();
+                        setTooltip({
+                          x: rect.left - parentRect.left + rect.width / 2,
+                          y: rect.top - parentRect.top - 8,
+                          date: day.date,
+                          count: day.count,
+                          value: day.value,
+                        });
+                      }}
+                      onMouseMove={(e) => {
+                        if (!day.inYear || !tooltip) return;
+                        const rect = (e.target as HTMLElement).getBoundingClientRect();
+                        const parent = (e.target as HTMLElement).closest('.relative')!;
+                        const parentRect = parent.getBoundingClientRect();
+                        setTooltip({
+                          x: rect.left - parentRect.left + rect.width / 2,
+                          y: rect.top - parentRect.top - 8,
+                          date: day.date,
+                          count: day.count,
+                          value: day.value,
+                        });
+                      }}
+                      onMouseLeave={() => setTooltip(null)}
                     />
                   ))}
                 </div>
@@ -167,6 +195,21 @@ export function Heatmap({ dailyActivity, dailyCount, year }: HeatmapProps) {
             </div>
           </div>
           
+          {tooltip && (
+            <div
+              className="absolute z-50 px-2 py-1 rounded bg-zinc-800 dark:bg-zinc-700 text-white text-xs whitespace-nowrap pointer-events-none"
+              style={{
+                left: tooltip.x,
+                top: tooltip.y,
+                transform: 'translate(-50%, -100%)',
+              }}
+            >
+              {new Date(tooltip.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              <span className="text-zinc-400 mx-1">—</span>
+              {tooltip.count} activity{tooltip.count === 1 ? '' : 'ies'}
+              <span className="text-zinc-500 ml-1">({tooltip.value.toFixed(1)} km)</span>
+            </div>
+          )}
           <div className="flex items-center gap-2 mt-4">
             <span className="text-xs text-zinc-500">Less</span>
             <div className="flex gap-1">
