@@ -78,6 +78,7 @@ export function calculateYearStats(
   monthlyDistance: Record<number, number>;
   monthlyActivities: Record<number, number>;
   dailyActivity: Record<string, number>;
+  dailyCount: Record<string, number>;
   totalCalories: number;
   avgHeartrate: number | null;
   maxHeartrate: number | null;
@@ -103,6 +104,7 @@ export function calculateYearStats(
   const monthlyDistance: Record<number, number> = {};
   const monthlyActivities: Record<number, number> = {};
   const dailyActivity: Record<string, number> = {};
+  const dailyCount: Record<string, number> = {};
   const weekdayStats: Record<number, { count: number; distance: number }> = {
     0: { count: 0, distance: 0 }, 
     1: { count: 0, distance: 0 },
@@ -162,6 +164,7 @@ export function calculateYearStats(
     monthlyDistance[month] = (monthlyDistance[month] || 0) + distanceKm;
     monthlyActivities[month] = (monthlyActivities[month] || 0) + 1;
     dailyActivity[dateKey] = (dailyActivity[dateKey] || 0) + distanceKm;
+    dailyCount[dateKey] = (dailyCount[dateKey] || 0) + 1;
     
     const adjustedDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
     weekdayStats[adjustedDay].count++;
@@ -199,6 +202,7 @@ export function calculateYearStats(
     monthlyDistance,
     monthlyActivities,
     dailyActivity,
+    dailyCount,
     totalCalories,
     avgHeartrate: activitiesWithHr > 0 ? heartrateSum / activitiesWithHr : null,
     maxHeartrate,

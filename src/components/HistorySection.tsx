@@ -54,7 +54,7 @@ export function HistorySection({ activities, onSelectActivity }: HistorySectionP
             <button
               key={activity.id}
               onClick={() => onSelectActivity(activity)}
-              className="w-full text-left p-3 rounded-lg border border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-4"
+              className="w-full text-left p-3 rounded-lg border border-zinc-100 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-4 cursor-pointer"
             >
               <span className="text-xl">{ACTIVITY_ICONS[activity.type] || ACTIVITY_ICONS.Default}</span>
               <div className="flex-1 min-w-0">

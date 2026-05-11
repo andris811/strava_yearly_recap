@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 
 interface HeatmapProps {
   dailyActivity: Record<string, number>;
+  dailyCount: Record<string, number>;
   year: number;
 }
 
@@ -19,7 +20,7 @@ function getColorLevel(value: number, maxValue: number): string {
   return 'bg-orange-500 dark:bg-orange-600';
 }
 
-export function Heatmap({ dailyActivity, year }: HeatmapProps) {
+export function Heatmap({ dailyActivity, dailyCount, year }: HeatmapProps) {
   const { weeks, maxValue, monthPositions } = useMemo(() => {
     const maxVal = Math.max(...Object.values(dailyActivity), 1);
     
@@ -31,22 +32,24 @@ export function Heatmap({ dailyActivity, year }: HeatmapProps) {
     
     const startWeek = new Date(year, 0, 1 - startDay);
     
-    const weeks: { date: string; dayIndex: number; value: number; inYear: boolean }[][] = [];
+    const weeks: { date: string; dayIndex: number; value: number; count: number; inYear: boolean }[][] = [];
     let currentDate = new Date(startWeek);
     
     while (currentDate <= endDate || weeks.length < 53) {
-      const week: { date: string; dayIndex: number; value: number; inYear: boolean }[] = [];
+      const week: { date: string; dayIndex: number; value: number; count: number; inYear: boolean }[] = [];
       
       for (let i = 0; i < 7; i++) {
         const dateStr = currentDate.toISOString().split('T')[0];
         const activityYear = currentDate.getFullYear();
         const inYear = activityYear === year;
         const value = inYear ? (dailyActivity[dateStr] || 0) : 0;
+        const count = inYear ? (dailyCount[dateStr] || 0) : 0;
         
         week.push({
           date: dateStr,
           dayIndex: i,
           value,
+          count,
           inYear,
         });
         
@@ -91,7 +94,7 @@ export function Heatmap({ dailyActivity, year }: HeatmapProps) {
     }
     
     return { weeks, maxValue: maxVal, monthPositions };
-  }, [dailyActivity, year]);
+  }, [dailyActivity, dailyCount, year]);
 
   const cellSize = 12;
   const cellGap = 3;
@@ -156,7 +159,7 @@ export function Heatmap({ dailyActivity, year }: HeatmapProps) {
                         width: cellSize,
                         height: cellSize,
                       }}
-                      title={day.inYear ? `${day.date}: ${day.value.toFixed(1)} km` : ''}
+                      title={day.inYear ? `${new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} — ${day.count} activity${day.count === 1 ? '' : 'ies'}` : ''}
                     />
                   ))}
                 </div>

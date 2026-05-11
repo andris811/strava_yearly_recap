@@ -238,7 +238,7 @@ export default function Dashboard() {
           yearlyComparison={stats.yearlyComparison}
         />
 
-        <Heatmap dailyActivity={stats.dailyActivity} year={selectedYear} />
+        <Heatmap dailyActivity={stats.dailyActivity} dailyCount={stats.dailyCount} year={selectedYear} />
 
         <HistorySection activities={activities} onSelectActivity={setSelectedActivity} />
         

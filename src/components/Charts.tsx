@@ -1,5 +1,6 @@
 'use client';
 
+import { useTheme } from './ThemeProvider';
 import {
   BarChart,
   Bar,
@@ -76,6 +77,8 @@ export function Charts({
   weekdayStats,
   yearlyComparison,
 }: ChartsProps) {
+  const { theme } = useTheme();
+  const gridStroke = theme === 'dark' ? '#333' : '#e5e5e5';
   const monthlyData: MonthlyData[] = MONTHS.map((name, index) => ({
     month: name,
     distance: monthlyDistance[index + 1] || 0,
@@ -111,7 +114,7 @@ export function Charts({
         </h3>
         <ResponsiveContainer width="100%" height={250}>
           <BarChart data={monthlyData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+            <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
             <XAxis dataKey="month" fontSize={12} />
             <YAxis fontSize={12} />
             <Tooltip content={<CustomTooltip />} />
@@ -126,7 +129,7 @@ export function Charts({
         </h3>
         <ResponsiveContainer width="100%" height={250}>
           <BarChart data={monthlyData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+            <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
             <XAxis dataKey="month" fontSize={12} />
             <YAxis fontSize={12} />
             <Tooltip content={<CustomTooltip />} />
@@ -142,7 +145,7 @@ export function Charts({
           </h3>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={weekdayData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+              <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
               <XAxis dataKey="day" fontSize={12} />
               <YAxis fontSize={12} />
               <Tooltip content={<CustomTooltip />} />
@@ -159,7 +162,7 @@ export function Charts({
           </h3>
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={comparisonData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+              <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
               <XAxis dataKey="year" fontSize={12} />
               <YAxis fontSize={12} yAxisId="left" />
               <YAxis yAxisId="right" orientation="right" fontSize={12} />

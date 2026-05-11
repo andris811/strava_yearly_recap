@@ -54,6 +54,7 @@ export interface YearStats {
   monthlyDistance: Record<number, number>;
   monthlyActivities: Record<number, number>;
   dailyActivity: Record<string, number>;
+  dailyCount: Record<string, number>;
   totalCalories: number;
   avgHeartrate: number | null;
   maxHeartrate: number | null;
